@@ -222,8 +222,8 @@
                         let items = data?.body?.items || [];
                         if (items && !Array.isArray(items)) items = [items];
 
-                        // 1. '일반용역' 필터 적용
-                        let resultItems = items.filter(item => item.bsnsDivNm === '일반용역');
+                        // 1. '용역' 필터 적용
+                        let resultItems = items.filter(item => item.bsnsDivNm === '용역');
 
                         // 2. 키워드가 있을 경우 공고명 필터링
                         if (keyword.trim()) {
@@ -234,7 +234,7 @@
 
                         setBidList(resultItems);
                         if (resultItems.length === 0) {
-                            setError('해당 조건에 일치하는 "일반용역" 공고가 없습니다.');
+                            setError('해당 조건에 일치하는 "용역" 공고가 없습니다.');
                         } else {
                             setStatus('');
                         }
@@ -266,7 +266,7 @@
                                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">나라장터 실시간 대시보드</h1>
                                 <p className="text-slate-500 mt-1 font-medium flex items-center gap-2">
                                     PPS Real-time Bid Monitor
-                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.6</span>
+                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.7</span>
                                 </p>
                             </div>
 
@@ -387,8 +387,8 @@
                                                 key={page}
                                                 onClick={() => setCurrentPage(page)}
                                                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === page
-                                                        ? 'bg-sky-500 text-white shadow-md shadow-sky-500/20 scale-110'
-                                                        : 'bg-white text-slate-400 hover:text-sky-500 border border-slate-200'
+                                                    ? 'bg-sky-500 text-white shadow-md shadow-sky-500/20 scale-110'
+                                                    : 'bg-white text-slate-400 hover:text-sky-500 border border-slate-200'
                                                     }`}
                                             >
                                                 {page}
