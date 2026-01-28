@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="나라장터 실시간 입찰공고 분석 대시보드 - 최신 조달 공고를 가장 스마트하게 확인하세요.">
+    <title>BidDash | 나라장터 입찰공고 실시간 현황</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        slate: {
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .premium-gradient {
+            background: linear-gradient(135deg, #38bdf8 0%, #6366f1 50%, #a855f7 100%);
+        }
+
+        .bg-blob {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .blob-1 {
+            background: radial-gradient(circle, #38bdf8 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            animation: float 20s infinite alternate;
+        }
+
+        .blob-2 {
+            background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+            bottom: -150px;
+            left: -100px;
+            animation: float 25s infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            from {
+                transform: translate(0, 0) scale(1);
+            }
+
+            to {
+                transform: translate(50px, 50px) scale(1.1);
+            }
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const API_BASE_URL = 'http://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo';
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        const StatCard = ({ title, value, icon, color }) => (
+            <div className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 opacity-10 ${color}`} />
+                <div className="flex justify-between items-start mb-4">
+                    <div className={`p-3 rounded-xl bg-opacity-20 ${color.replace('bg-', 'bg-')}`}>
+                        <Icon name={icon} size={24} className="text-white" />
+                    </div>
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-slate-400 text-sm font-medium">{title}</span>
+                    <span className="text-3xl font-bold mt-1 tracking-tight">{value}</span>
+                </div>
+            </div>
+        );
+
+        function App() {
+            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '692e2494ef42277ea5df6f9fb0eccabca3061d0fc6f417ca51b8ff166c14cc0e');
+            const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+            const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+            const [bidList, setBidList] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                localStorage.setItem('pps_api_key', apiKey);
+            }, [apiKey]);
+
+            const fetchBids = async () => {
+                if (!apiKey) {
+                    setError('API 인증키가 필요합니다. 상단 설정에서 입력해주세요.');
+                    return;
+                }
+
+                setLoading(true);
+                setError(null);
+
+                try {
+                    const bgnDt = startDate.replace(/-/g, '') + '0000';
+                    const endDt = endDate.replace(/-/g, '') + '2359';
+
+                    // Use allorigins proxy to bypass CORS
+                    const targetUrl = `${API_BASE_URL}?ServiceKey=${apiKey}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=100&pageNo=1`;
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+                    const response = await axios.get(proxyUrl);
+                    const dataObj = JSON.parse(response.data.contents);
+                    const data = dataObj.response;
+
+                    if (data?.header?.resultCode !== '00') {
+                        setError(`[API 서비스 에러] ${data?.header?.resultMsg || '인증키 확인 요망'}`);
+                        setBidList([]);
+                    } else {
+                        const items = data?.body?.items || [];
+                        setBidList(items);
+                        if (items.length === 0) setError('해당 기간에 조회된 데이터가 없습니다.');
+                    }
+                } catch (err) {
+                    console.error('Error Details:', err);
+                    setError('데이터 호출 실패. 브라우저의 CORS 차단 때문일 수 있습니다. "Allow CORS" 확장 프로그램을 설치하거나 잠시 후 다시 시도해주세요.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const stats = useMemo(() => {
+                const total = bidList.length;
+                const urgent = bidList.filter(b => b.bidNtceNm.includes('긴급')).length;
+                const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const closingToday = bidList.filter(b => b.bidClseDate === today).length;
+
+                return [
+                    { title: '전체 공고', value: total, icon: 'file-text', color: 'bg-sky-500' },
+                    { title: '긴급 공고', value: urgent, icon: 'alert-circle', color: 'bg-amber-500' },
+                    { title: '오늘 마감', value: closingToday, icon: 'clock', color: 'bg-rose-500' },
+                ];
+            }, [bidList]);
+
+            return (
+                <div className="min-h-screen relative p-4 md:p-8">
+                    <div className="bg-blob blob-1" />
+                    <div className="bg-blob blob-2" />
+
+                    <div className="max-w-7xl mx-auto">
+                        <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                            <div>
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                                    나라장터 실시간 대시보드
+                                </h1>
+                                <p className="text-slate-500 mt-1">PPS Real-time Bid Monitor</p>
+                            </div>
+
+                            <div className="glass-panel p-4 rounded-2xl flex flex-wrap gap-4 items-end">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-slate-500 font-bold ml-1">인증키 (서비스키)</label>
+                                    <input
+                                        type="password"
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        placeholder="API KEY"
+                                        className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:border-sky-500 outline-none w-48"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-slate-500 font-bold ml-1">조회 기간</label>
+                                    <div className="flex items-center bg-slate-900 border border-white/10 rounded-xl px-2">
+                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent p-2 text-xs outline-none" />
+                                        <span className="text-slate-700">~</span>
+                                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent p-2 text-xs outline-none" />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={fetchBids}
+                                    disabled={loading}
+                                    className="px-6 py-2.5 premium-gradient rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 h-[42px]"
+                                >
+                                    {loading ? <Icon name="loader-2" className="animate-spin" /> : <Icon name="search" />}
+                                    검색
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            {stats.map((stat, i) => <StatCard key={i} {...stat} />)}
+                        </div>
+
+                        <div className="glass-panel rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                <h3 className="font-bold flex items-center gap-2">
+                                    <Icon name="list" className="text-sky-400" />
+                                    입찰 공고 현황
+                                </h3>
+                                <span className="text-xs text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/20">
+                                    {bidList.length}건 데이터
+                                </span>
+                            </div>
+
+                            {error ? (
+                                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                                    <Icon name="alert-triangle" size={48} className="text-rose-500 mb-4 opacity-50" />
+                                    <p className="text-slate-400 max-w-sm">{error}</p>
+                                </div>
+                            ) : bidList.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-900/50 text-slate-500 uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-6 py-4 font-semibold">정보</th>
+                                                <th className="px-6 py-4 font-semibold w-1/2">입찰공고명</th>
+                                                <th className="px-6 py-4 font-semibold">공고기관</th>
+                                                <th className="px-6 py-4 font-semibold text-right">마감일시</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {bidList.map((bid, i) => {
+                                                const isUrgent = bid.bidNtceNm.includes('긴급');
+                                                const isToday = bid.bidClseDate === new Date().toISOString().split('T')[0].replace(/-/g, '');
+                                                return (
+                                                    <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] text-sky-400 font-bold uppercase">{bid.bsnsDivNm}</span>
+                                                                <span className="text-slate-500 font-mono text-xs">{bid.bidNtceNo}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <div className="flex gap-2">
+                                                                    {isUrgent && <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-500 border border-amber-500/20 font-bold">긴급</span>}
+                                                                    {isToday && <span className="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-500 border border-rose-500/20 font-bold animate-pulse">오늘마감</span>}
+                                                                </div>
+                                                                <a href={bid.bidNtceUrl} target="_blank" className="font-semibold group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                                                                    {bid.bidNtceNm}
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-300">
+                                                            <div className="flex items-center gap-2">
+                                                                <Icon name="building-2" size={14} className="text-slate-600" />
+                                                                {bid.ntceInsttNm}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <div className={`flex flex-col ${isToday ? 'text-rose-400' : 'text-slate-400'}`}>
+                                                                <span className="font-bold">{bid.bidClseDate?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</span>
+                                                                <span className="text-xs opacity-60">{bid.bidClseTm?.replace(/(\d{2})(\d{2})/, '$1:$2')}</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center p-20 text-center opacity-30">
+                                    <Icon name="search" size={64} className="mb-4" />
+                                    <p>검색 버튼을 눌러 공고를 확인하세요.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
