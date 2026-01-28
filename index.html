@@ -172,18 +172,20 @@
                     // API URL construction
                     const targetUrl = `${API_BASE_URL}?ServiceKey=${apiKey}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=100&pageNo=1`;
 
-                    // Use allorigins proxy to bypass CORS
-                    // Note: We use the raw proxy if JSON parsing is tricky, or use the /get endpoint
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                    // Use allorigins raw proxy to get the direct response
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
                     const response = await axios.get(proxyUrl);
 
-                    if (!response.data || !response.data.contents) {
-                        throw new Error('프록시 서버로부터 응답을 받지 못했습니다.');
+                    let data;
+                    const responseData = response.data;
+
+                    if (typeof responseData === 'string' && responseData.includes('Forbidden')) {
+                        throw new Error('API 서버에서 접근을 거부했습니다. (Forbidden) API 키가 올바른지, 혹은 공공데이터포털에서 해당 API 사용 신청(활성 상태)이 완료되었는지 확인해주세요.');
                     }
 
-                    const dataObj = JSON.parse(response.data.contents);
-                    const data = dataObj.response;
+                    const dataObj = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
+                    data = dataObj.response;
 
                     if (data?.header?.resultCode !== '00') {
                         setError(`[API 서비스 에러] ${data?.header?.resultMsg || '인증키 또는 파라미터를 확인해주세요.'}`);
@@ -195,8 +197,8 @@
                     }
                 } catch (err) {
                     console.error('Error Details:', err);
-                    if (err.message.includes('CORS') || err.code === 'ERR_NETWORK') {
-                        setError('데이터 호출 실패. 브라우저의 CORS 차단 또는 네트워크 문제입니다. 프록시 서버(allorigins)에 일시적인 장애가 있을 수 있습니다.');
+                    if (err.message.includes('Unexpected token') || err.message.includes('JSON')) {
+                        setError('데이터 처리 오류: API 서버로부터 올바르지 않은 응답을 받았습니다. 보통 API 키(서비스키)가 잘못되었을 때 발생합니다. (Forbidden)');
                     } else {
                         setError(`에러 발생: ${err.message}`);
                     }
