@@ -145,7 +145,7 @@
         );
 
         function App() {
-            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '');
+            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '692e2494ef42277ea5df6f9fb0eccabca3061d0fc6f417ca51b8ff166c14cc0e');
             const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
             const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
             const [bidList, setBidList] = useState([]);
