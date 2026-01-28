@@ -215,6 +215,9 @@
                 }
             };
 
+            // 콘솔 디버깅용 버전 로그
+            console.log("%c BidDash Running: STABLE 2.2 ", "background: #005eb8; color: #fff; font-weight: bold; padding: 4px; border-radius: 4px;");
+
             const fetchBids = async () => {
                 setLoading(true);
                 setError(null);
@@ -224,7 +227,9 @@
                     const bgnDt = startDate.replace(/-/g, '') + '0000';
                     const endDt = endDate.replace(/-/g, '') + '2359';
 
-                    const targetUrl = `${API_BASE_URL}?ServiceKey=${FIXED_API_KEY}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=500&pageNo=1`;
+                    // 인증키 인코딩 처리 (이미 인코딩된 경우와 아닌 경우 대응)
+                    const encodedKey = FIXED_API_KEY.includes('%') ? FIXED_API_KEY : encodeURIComponent(FIXED_API_KEY);
+                    const targetUrl = `${API_BASE_URL}?ServiceKey=${encodedKey}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=500&pageNo=1`;
                     // allorigins proxy 사용 (캐시 방지를 위해 timestamp 추가)
                     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&_=${Date.now()}`;
 
@@ -304,7 +309,6 @@
                             <div className="flex gap-8 h-full">
                                 <button className="tab-active px-2 h-full flex items-center gap-2">
                                     입찰공고
-                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-1.5 py-0.5 rounded-full font-bold">STABLE 2.1</span>
                                 </button>
                                 <button className="text-slate-500 hover:text-slate-800 px-2 h-full flex items-center transition-colors">개찰결과</button>
                                 <button className="text-slate-500 hover:text-slate-800 px-2 h-full flex items-center transition-colors">최종낙찰자</button>
@@ -313,6 +317,10 @@
                     </div>
 
                     <main className="max-w-[1400px] mx-auto px-6 mt-6">
+                        <div className="mb-6 flex items-center gap-3">
+                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">나라장터 실시간 입찰 대시보드</h1>
+                            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">STABLE 2.2</span>
+                        </div>
                         {/* Search Section */}
                         <section className="search-container p-6 mb-8">
                             <div className="grid grid-cols-1 gap-4">
