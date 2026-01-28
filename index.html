@@ -216,7 +216,7 @@
             };
 
             // 콘솔 디버깅용 버전 로그
-            console.log("%c BidDash Running: STABLE 2.2 ", "background: #005eb8; color: #fff; font-weight: bold; padding: 4px; border-radius: 4px;");
+            console.log("%c BidDash Running: STABLE 2.3 ", "background: #005eb8; color: #fff; font-weight: bold; padding: 4px; border-radius: 4px;");
 
             const fetchBids = async () => {
                 setLoading(true);
@@ -268,19 +268,28 @@
                     // Filtering
                     let filtered = items;
 
-                    // Business Division Filter
-                    if (!selectedDivs.includes('전체')) {
-                        filtered = filtered.filter(item => selectedDivs.includes(item.bsnsDivNm));
+                    // 1. 업무구분(selectedDivs) 필터
+                    if (!selectedDivs.includes('전체') && selectedDivs.length > 0) {
+                        filtered = filtered.filter(item => {
+                            if (!item.bsnsDivNm) return false;
+                            // 일반용역/기술용역 등은 '용역'으로 포함될 수 있으므로 유연하게 매칭
+                            return selectedDivs.some(div => item.bsnsDivNm.includes(div) || div.includes(item.bsnsDivNm));
+                        });
                     }
 
-                    // Keyword Filter
+                    // 2. 키워드(keyword) 필터 (대소문자 무시)
                     if (keyword.trim()) {
-                        filtered = filtered.filter(item => item.bidNtceNm?.includes(keyword.trim()));
+                        const searchKwd = keyword.trim().toLowerCase();
+                        filtered = filtered.filter(item => {
+                            const ntceNm = (item.bidNtceNm || '').toLowerCase();
+                            return ntceNm.includes(searchKwd);
+                        });
                     }
 
-                    // Bid No Filter
+                    // 3. 공고번호(bidNo) 필터
                     if (bidNo.trim()) {
-                        filtered = filtered.filter(item => item.bidNtceNo?.includes(bidNo.trim()));
+                        const searchNo = bidNo.trim();
+                        filtered = filtered.filter(item => (item.bidNtceNo || '').includes(searchNo));
                     }
 
                     setBidList(filtered);
@@ -319,7 +328,7 @@
                     <main className="max-w-[1400px] mx-auto px-6 mt-6">
                         <div className="mb-6 flex items-center gap-3">
                             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">나라장터 실시간 입찰 대시보드</h1>
-                            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">STABLE 2.2</span>
+                            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold shadow-sm">STABLE 2.3</span>
                         </div>
                         {/* Search Section */}
                         <section className="search-container p-6 mb-8">
