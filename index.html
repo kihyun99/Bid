@@ -169,16 +169,24 @@
                     const bgnDt = startDate.replace(/-/g, '') + '0000';
                     const endDt = endDate.replace(/-/g, '') + '2359';
 
-                    // Use allorigins proxy to bypass CORS
+                    // API URL construction
                     const targetUrl = `${API_BASE_URL}?ServiceKey=${apiKey}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=100&pageNo=1`;
+
+                    // Use allorigins proxy to bypass CORS
+                    // Note: We use the raw proxy if JSON parsing is tricky, or use the /get endpoint
                     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
                     const response = await axios.get(proxyUrl);
+
+                    if (!response.data || !response.data.contents) {
+                        throw new Error('프록시 서버로부터 응답을 받지 못했습니다.');
+                    }
+
                     const dataObj = JSON.parse(response.data.contents);
                     const data = dataObj.response;
 
                     if (data?.header?.resultCode !== '00') {
-                        setError(`[API 서비스 에러] ${data?.header?.resultMsg || '인증키 확인 요망'}`);
+                        setError(`[API 서비스 에러] ${data?.header?.resultMsg || '인증키 또는 파라미터를 확인해주세요.'}`);
                         setBidList([]);
                     } else {
                         const items = data?.body?.items || [];
@@ -187,7 +195,11 @@
                     }
                 } catch (err) {
                     console.error('Error Details:', err);
-                    setError('데이터 호출 실패. 브라우저의 CORS 차단 때문일 수 있습니다. "Allow CORS" 확장 프로그램을 설치하거나 잠시 후 다시 시도해주세요.');
+                    if (err.message.includes('CORS') || err.code === 'ERR_NETWORK') {
+                        setError('데이터 호출 실패. 브라우저의 CORS 차단 또는 네트워크 문제입니다. 프록시 서버(allorigins)에 일시적인 장애가 있을 수 있습니다.');
+                    } else {
+                        setError(`에러 발생: ${err.message}`);
+                    }
                 } finally {
                     setLoading(false);
                 }
