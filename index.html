@@ -173,11 +173,11 @@
                     const bgnDt = startDate.replace(/-/g, '') + '0000';
                     const endDt = endDate.replace(/-/g, '') + '2359';
 
-                    // API URL construction
+                    // API URL construction (using http as requested by user)
                     const targetUrl = `${API_BASE_URL}?ServiceKey=${apiKey}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=100&pageNo=1`;
 
-                    // Use allorigins raw proxy to get the direct response
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                    // Use a more stable proxy for HTTP -> HTTPS bridging
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
                     const response = await axios.get(proxyUrl);
 
