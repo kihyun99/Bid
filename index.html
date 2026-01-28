@@ -225,10 +225,18 @@
                     const endDt = endDate.replace(/-/g, '') + '2359';
 
                     const targetUrl = `${API_BASE_URL}?ServiceKey=${encodeURIComponent(FIXED_API_KEY)}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=500&pageNo=1`;
-                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                    // allorigins proxy 사용 (corsproxy.io 403 방지)
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
                     const response = await axios.get(proxyUrl);
-                    const data = response.data.response;
+
+                    // allorigins는 데이터를 string으로 contents 필드에 담아줍니다.
+                    let responseData = response.data.contents;
+                    if (typeof responseData === 'string') {
+                        responseData = JSON.parse(responseData);
+                    }
+
+                    const data = responseData.response;
 
                     if (data?.header?.resultCode !== '00') {
                         throw new Error(data?.header?.resultMsg || 'API 통신 오류');
