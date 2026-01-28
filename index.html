@@ -9,14 +9,14 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React & ReactDOM CDN -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.474.0/dist/lucide.min.js" crossorigin></script>
     <!-- Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js" crossorigin></script>
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -37,15 +37,15 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             color: #1e293b;
             overflow-x: hidden;
         }
 
         .glass-panel {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.7);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
         }
 
@@ -95,10 +95,6 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-
-        .table-row-hover:hover {
-            background-color: #f8fafc;
-        }
     </style>
 </head>
 
@@ -106,16 +102,19 @@
     <div id="root"></div>
 
     <script>
-        // 전역 에러 핸들러: 화이트 스크린 방지용
+        // 전역 에러 핸들러: 화이트 스크린 방지 및 상세 정보 획득 시도
         window.onerror = function (msg, url, line, col, error) {
             const root = document.getElementById('root');
             if (root) {
                 root.innerHTML = `
-                    <div style="padding: 20px; color: #e11d48; background: #fff1f2; border: 1px solid #fda4af; margin: 20px; border-radius: 12px; font-family: sans-serif;">
-                        <h2 style="margin-top: 0;">프로그램 실행 오류가 발생했습니다</h2>
-                        <p><strong>에러 메시지:</strong> ${msg}</p>
-                        <p style="font-size: 12px; color: #9f1239;">위치: ${line}행 ${col}열</p>
-                        <button onclick="location.reload()" style="background: #e11d48; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">다시 시도</button>
+                    <div style="padding: 30px; color: #e11d48; background: white; border: 2px solid #fda4af; margin: 40px auto; max-width: 600px; border-radius: 20px; font-family: sans-serif; shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+                        <h2 style="margin-top: 0; color: #be123c;">시스템 로드 중 오류가 발생했습니다</h2>
+                        <p style="color: #475569; font-size: 14px;">브라우저 보안 설정이나 네트워크 문제로 라이브러리를 불러오지 못했을 수 있습니다.</p>
+                        <div style="background: #fff1f2; padding: 15px; border-radius: 10px; margin: 20px 0; font-family: monospace; font-size: 13px;">
+                            <strong>Error:</strong> ${msg}<br>
+                            <strong>Info:</strong> ${line}행 ${col}열
+                        </div>
+                        <button onclick="location.reload()" style="background: #e11d48; color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%;">새로고침하여 다시 시도</button>
                     </div>
                 `;
             }
@@ -124,13 +123,29 @@
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         const API_BASE_URL = 'https://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo';
 
-        // 루사이드 아이콘 컴포넌트 최적화
+        // React 안전한 아이콘 컴포넌트 (DOM 변형 방지)
         const Icon = ({ name, size = 20, className = "" }) => {
-            return <i data-lucide={name} className={className} style={{ width: size, height: size, display: 'inline-block' }}></i>;
+            const elRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && elRef.current) {
+                    elRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    window.lucide.createIcons({
+                        elements: [elRef.current.firstChild]
+                    });
+                    const svg = elRef.current.firstChild;
+                    if (svg && svg.tagName === 'svg') {
+                        svg.setAttribute('class', className);
+                        svg.setAttribute('width', size);
+                        svg.setAttribute('height', size);
+                        svg.style.display = 'block';
+                    }
+                }
+            }, [name, size, className]);
+            return <span ref={elRef} className="inline-flex items-center justify-center pointer-events-none"></span>;
         };
 
         const StatCard = ({ title, value, icon, color, textColor }) => (
@@ -149,7 +164,8 @@
         );
 
         function App() {
-            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '');
+            // 초기 API 키 복구 (사용자가 기존에 쓰던 키가 있다면 로컬스토리지에서 가져옴)
+            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '692e2494ef42277ea5df6f9fb0eccabca3061d0fc6f417ca51b8ff166c14cc0e');
             const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
             const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
             const [bidList, setBidList] = useState([]);
@@ -157,17 +173,8 @@
             const [status, setStatus] = useState('');
             const [error, setError] = useState(null);
 
-            // 매 렌더링 후 아이콘 새로고침
             useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-            });
-
-            useEffect(() => {
-                if (apiKey) {
-                    localStorage.setItem('pps_api_key', apiKey);
-                }
+                if (apiKey) localStorage.setItem('pps_api_key', apiKey);
             }, [apiKey]);
 
             const fetchBids = async () => {
@@ -183,58 +190,46 @@
                 try {
                     const bgnDt = startDate.replace(/-/g, '') + '0000';
                     const endDt = endDate.replace(/-/g, '') + '2359';
-
-                    setStatus('공공데이터 포털 서버에 데이터를 요청하고 있습니다 (최대 10초 소요)...');
+                    setStatus('공공데이터 포털 서버에 데이터를 요청하고 있습니다...');
 
                     const targetUrl = `${API_BASE_URL}?ServiceKey=${encodeURIComponent(apiKey)}&type=json&bidNtceBgnDt=${bgnDt}&bidNtceEndDt=${endDt}&numOfRows=100&pageNo=1`;
-                    // corsproxy.io 를 통해 CORS 우회
                     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
                     const response = await axios.get(proxyUrl).catch(err => {
-                        if (err.response) return err.response; // 403 에러 등을 캐치하기 위해
+                        if (err.response) return err.response;
                         throw err;
                     });
 
                     const responseData = response.data;
-                    setStatus('서버 응답 데이터를 분석하고 화면에 출력하는 중...');
+                    setStatus('서버 응답 데이터를 분석하는 중...');
 
-                    if (typeof responseData === 'string' && (responseData.includes('Forbidden') || responseData.includes('Service Key is invalid'))) {
-                        throw new Error('API 키가 올바르지 않거나 승인되지 않았습니다. (Forbidden)');
-                    }
-
-                    if (typeof responseData === 'string' && responseData.includes('<returnAuthMsg>')) {
-                        const msg = responseData.match(/<returnAuthMsg>(.*?)<\/returnAuthMsg>/)?.[1] || '인증 오류';
-                        throw new Error(`API 인증 에러: ${msg}`);
-                    }
-
-                    let dataObj = responseData;
                     if (typeof responseData === 'string') {
-                        try {
-                            dataObj = JSON.parse(responseData);
-                        } catch (e) {
-                            throw new Error('데이터 파싱 중 오류가 발생했습니다. API 서버 응답이 올바르지 않을 수 있습니다.');
+                        if (responseData.includes('Forbidden') || responseData.includes('invalid')) {
+                            throw new Error('인증키가 올바르지 않거나 승인 대기 상태입니다.');
                         }
                     }
 
-                    const data = dataObj.response;
+                    let dataObj = responseData;
+                    if (typeof responseData === 'string' && responseData.trim().startsWith('{')) {
+                        dataObj = JSON.parse(responseData);
+                    }
 
+                    const data = dataObj.response;
                     if (data?.header?.resultCode !== '00') {
-                        setError(`[API 에러] ${data?.header?.resultMsg || '공공데이터 포털과 통신 중 오류가 발생했습니다.'}`);
+                        setError(`[API 에러] ${data?.header?.resultMsg || '공공데이터 포털 통신 실패'}`);
                         setBidList([]);
                     } else {
                         let items = data?.body?.items || [];
                         if (items && !Array.isArray(items)) items = [items];
-
                         setBidList(items);
                         if (items.length === 0) {
-                            setError('해당 기간에 조회된 데이터가 없습니다. (데이터가 생성되는 데 시간이 걸릴 수 있습니다)');
+                            setError('해당 기간에 조회된 데이터가 없습니다.');
                         } else {
                             setStatus('');
                         }
                     }
                 } catch (err) {
-                    console.error('Fetch Error:', err);
-                    setError(err.message || '데이터를 가져오는 중 예상치 못한 오류가 발생했습니다.');
+                    setError(err.message || '데이터를 가져오는 중 오류가 발생했습니다.');
                 } finally {
                     setLoading(false);
                 }
@@ -242,177 +237,143 @@
 
             const stats = useMemo(() => {
                 const safeList = Array.isArray(bidList) ? bidList : [];
-                const total = safeList.length;
-                const urgent = safeList.filter(b => b?.bidNtceNm?.includes('긴급')).length;
-                const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-                const closingToday = safeList.filter(b => b?.bidClseDate === today).length;
-
                 return [
-                    { title: '전체 공고', value: total, icon: 'file-text', color: 'bg-sky-500', textColor: 'text-sky-600' },
-                    { title: '긴급 공고', value: urgent, icon: 'alert-circle', color: 'bg-amber-500', textColor: 'text-amber-600' },
-                    { title: '오늘 마감', value: closingToday, icon: 'clock', color: 'bg-rose-500', textColor: 'text-rose-600' },
+                    { title: '전체 공고', value: safeList.length, icon: 'file-text', color: 'bg-sky-500', textColor: 'text-sky-600' },
+                    { title: '긴급 공고', value: safeList.filter(b => b?.bidNtceNm?.includes('긴급')).length, icon: 'alert-circle', color: 'bg-amber-500', textColor: 'text-amber-600' },
+                    { title: '오늘 마감', value: safeList.filter(b => b?.bidClseDate === new Date().toISOString().split('T')[0].replace(/-/g, '')).length, icon: 'clock', color: 'bg-rose-500', textColor: 'text-rose-600' },
                 ];
             }, [bidList]);
 
-            // 렌더링 에러 캐치
-            try {
-                return (
-                    <div className="min-h-screen relative p-4 md:p-8">
-                        <div className="bg-blob blob-1" />
-                        <div className="bg-blob blob-2" />
+            return (
+                <div className="min-h-screen relative p-4 md:p-8">
+                    <div className="bg-blob blob-1" />
+                    <div className="bg-blob blob-2" />
 
-                        <div className="max-w-7xl mx-auto">
-                            <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                                <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-                                        나라장터 실시간 대시보드
-                                    </h1>
-                                    <p className="text-slate-500 mt-1 font-medium flex items-center gap-2">
-                                        PPS Real-time Bid Monitor
-                                        <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.2</span>
-                                    </p>
-                                </div>
-
-                                <div className="glass-panel p-4 rounded-2xl flex flex-wrap gap-4 items-end shadow-lg shadow-slate-200/50">
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-xs text-slate-500 font-bold ml-1">인증키 (서비스키)</label>
-                                        <input
-                                            type="password"
-                                            value={apiKey}
-                                            onChange={(e) => setApiKey(e.target.value)}
-                                            placeholder="공공데이터포털 인증키"
-                                            className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none w-48 text-slate-900 transition-all font-mono"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <label className="text-xs text-slate-500 font-bold ml-1">조회 기간</label>
-                                        <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition-all">
-                                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent p-2 text-xs outline-none text-slate-900 font-medium" />
-                                            <span className="text-slate-300">~</span>
-                                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent p-2 text-xs outline-none text-slate-900 font-medium" />
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={fetchBids}
-                                        disabled={loading}
-                                        className="px-6 py-2.5 premium-gradient text-white rounded-xl font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-50 h-[42px]"
-                                    >
-                                        {loading ? <i data-lucide="loader-2" className="animate-spin w-5 h-5" /> : <i data-lucide="search" className="w-5 h-5" />}
-                                        검색하기
-                                    </button>
-                                </div>
-                            </header>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                {stats.map((stat, i) => <StatCard key={i} {...stat} />)}
+                    <div className="max-w-7xl mx-auto">
+                        <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                            <div>
+                                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">나라장터 실시간 대시보드</h1>
+                                <p className="text-slate-500 mt-1 font-medium flex items-center gap-2">
+                                    PPS Real-time Bid Monitor
+                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.3</span>
+                                </p>
                             </div>
 
-                            <div className="glass-panel rounded-3xl overflow-hidden flex flex-col min-h-[500px] border-white/60 shadow-xl shadow-slate-200/50">
-                                <div className="p-6 border-b border-slate-100 bg-white/50 flex items-center justify-between">
-                                    <h3 className="font-bold flex items-center gap-2 text-slate-800">
-                                        <Icon name="list" className="text-sky-500" />
-                                        최근 입찰 공고 목록
-                                    </h3>
-                                    <span className="text-xs text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 font-bold">
-                                        {bidList.length}건 검색됨
-                                    </span>
+                            <div className="glass-panel p-4 rounded-2xl flex flex-wrap gap-4 items-end shadow-lg shadow-slate-200/50">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-slate-500 font-bold ml-1">인증키 (서비스키)</label>
+                                    <input
+                                        type="password"
+                                        value={apiKey}
+                                        onChange={(e) => setApiKey(e.target.value)}
+                                        placeholder="인증키 입력"
+                                        className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none w-48 text-slate-900 transition-all font-mono"
+                                    />
                                 </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-slate-500 font-bold ml-1">조회 기간</label>
+                                    <div className="flex items-center bg-white border border-slate-200 rounded-xl px-2 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 transition-all">
+                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent p-2 text-xs outline-none text-slate-900 font-medium" />
+                                        <span className="text-slate-300">~</span>
+                                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent p-2 text-xs outline-none text-slate-900 font-medium" />
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={fetchBids}
+                                    disabled={loading}
+                                    className="px-6 py-2.5 premium-gradient text-white rounded-xl font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-50 h-[42px]"
+                                >
+                                    {loading ? <Icon name="loader-2" size={20} className="animate-spin" /> : <Icon name="search" size={20} />}
+                                    검색하기
+                                </button>
+                            </div>
+                        </header>
 
-                                {error ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white/50">
-                                        <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mb-4 border border-rose-100">
-                                            <Icon name="alert-circle" size={32} className="text-rose-500" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            {stats.map((stat, i) => <StatCard key={i} {...stat} />)}
+                        </div>
+
+                        <div className="glass-panel rounded-3xl overflow-hidden flex flex-col min-h-[500px] border-white/60 shadow-xl shadow-slate-200/50">
+                            <div className="p-6 border-b border-slate-100 bg-white/50 flex items-center justify-between">
+                                <h3 className="font-bold flex items-center gap-2 text-slate-800">
+                                    <Icon name="list" className="text-sky-500" />
+                                    공고 목록
+                                </h3>
+                                <span className="text-xs text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-100 font-bold">
+                                    {bidList.length}건
+                                </span>
+                            </div>
+
+                            {error ? (
+                                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white/50">
+                                    <Icon name="alert-circle" size={48} className="text-rose-500 mb-4 opacity-50" />
+                                    <p className="text-slate-800 font-bold mb-2">데이터 조회가 중단되었습니다</p>
+                                    <p className="text-slate-500 max-w-sm text-sm">{error}</p>
+                                </div>
+                            ) : loading ? (
+                                <div className="flex-1 flex flex-col items-center justify-center p-20 text-center bg-white/50">
+                                    <div className="relative mb-8">
+                                        <div className="w-16 h-16 border-4 border-sky-100 border-t-sky-500 rounded-full animate-spin"></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Icon name="database" size={20} className="text-sky-500 animate-pulse" />
                                         </div>
-                                        <p className="text-slate-800 font-bold mb-2 text-lg">데이터 조회가 중단되었습니다</p>
-                                        <p className="text-slate-500 max-w-sm text-sm leading-relaxed mb-6">{error}</p>
-                                        <button onClick={fetchBids} className="text-sky-600 text-sm font-bold hover:underline flex items-center gap-1">
-                                            <Icon name="refresh-cw" size={14} /> 다시 시도하기
-                                        </button>
                                     </div>
-                                ) : loading ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center p-20 text-center bg-white/50">
-                                        <div className="relative mb-8">
-                                            <div className="w-20 h-20 border-4 border-sky-100 border-t-sky-500 rounded-full animate-spin"></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <Icon name="database" size={24} className="text-sky-500 animate-pulse" />
-                                            </div>
-                                        </div>
-                                        <p className="text-slate-800 font-bold text-lg mb-2">데이터를 성공적으로 찾고 있습니다</p>
-                                        <p className="text-sky-600 text-sm font-medium animate-pulse bg-sky-50 px-4 py-2 rounded-full border border-sky-100">{status}</p>
-                                    </div>
-                                ) : bidList.length > 0 ? (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-sm border-collapse">
-                                            <thead className="bg-slate-50/80 text-slate-500 uppercase tracking-wider">
-                                                <tr>
-                                                    <th className="px-6 py-4 font-bold text-[11px]">분류/번호</th>
-                                                    <th className="px-6 py-4 font-bold text-[11px] w-1/2">입찰공고명</th>
-                                                    <th className="px-6 py-4 font-bold text-[11px]">발주기관</th>
-                                                    <th className="px-6 py-4 font-bold text-[11px] text-right">마감일시</th>
+                                    <p className="text-sky-600 text-sm font-medium animate-pulse">{status}</p>
+                                </div>
+                            ) : bidList.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm border-collapse">
+                                        <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-6 py-4 font-bold text-[11px]">정보</th>
+                                                <th className="px-6 py-4 font-bold text-[11px] w-1/2">입찰공고명</th>
+                                                <th className="px-6 py-4 font-bold text-[11px]">기관</th>
+                                                <th className="px-6 py-4 font-bold text-[11px] text-right">마감</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                            {bidList.map((bid, i) => (
+                                                <tr key={bid?.bidNtceNo || i} className="hover:bg-slate-50/50 transition-colors group">
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] text-sky-600 font-bold">{bid.bsnsDivNm}</span>
+                                                            <span className="text-slate-400 font-mono text-xs">{bid.bidNtceNo}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex gap-1">
+                                                                {bid?.bidNtceNm?.includes('긴급') && <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-50 text-amber-600 border border-amber-200 font-bold">긴급</span>}
+                                                            </div>
+                                                            <a href={bid.bidNtceUrl} target="_blank" className="text-slate-800 font-semibold group-hover:text-sky-600 transition-colors line-clamp-2">
+                                                                {bid.bidNtceNm}
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-5">
+                                                        <span className="text-slate-600 text-xs">{bid.ntceInsttNm}</span>
+                                                    </td>
+                                                    <td className="px-6 py-5 text-right whitespace-nowrap">
+                                                        <div className="flex flex-col text-slate-600">
+                                                            <span className="font-bold text-xs">{bid.bidClseDate?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</span>
+                                                            <span className="text-[10px] opacity-60">{bid.bidClseTm?.replace(/(\d{2})(\d{2})/, '$1:$2')}</span>
+                                                        </div>
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 bg-white">
-                                                {bidList.map((bid, i) => {
-                                                    const isUrgent = bid?.bidNtceNm?.includes('긴급');
-                                                    const isToday = bid?.bidClseDate === new Date().toISOString().split('T')[0].replace(/-/g, '');
-                                                    return (
-                                                        <tr key={bid?.bidNtceNo || i} className="hover:bg-slate-50/50 transition-colors group">
-                                                            <td className="px-6 py-5">
-                                                                <div className="flex flex-col">
-                                                                    <span className="text-[10px] text-sky-600 font-bold uppercase tracking-tight">{bid.bsnsDivNm}</span>
-                                                                    <span className="text-slate-400 font-mono text-xs mt-0.5">{bid.bidNtceNo}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-5">
-                                                                <div className="flex flex-col gap-2">
-                                                                    <div className="flex gap-2">
-                                                                        {isUrgent && <span className="px-2 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 border border-amber-200 font-bold">긴급</span>}
-                                                                        {isToday && <span className="px-2 py-0.5 rounded text-[10px] bg-rose-50 text-rose-600 border border-rose-200 font-bold animate-pulse">오늘마감</span>}
-                                                                    </div>
-                                                                    <a href={bid.bidNtceUrl} target="_blank" className="text-slate-800 font-semibold group-hover:text-sky-600 transition-colors leading-snug line-clamp-2">
-                                                                        {bid.bidNtceNm}
-                                                                    </a>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-5">
-                                                                <div className="flex items-center gap-2 text-slate-600">
-                                                                    <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-white transition-colors">
-                                                                        <Icon name="building-2" size={12} className="text-slate-400" />
-                                                                    </div>
-                                                                    <span className="font-medium text-xs truncate max-w-[150px]">{bid.ntceInsttNm}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-5 text-right whitespace-nowrap">
-                                                                <div className={`flex flex-col ${isToday ? 'text-rose-600' : 'text-slate-600'}`}>
-                                                                    <span className="font-bold text-sm tracking-tight">{bid.bidClseDate?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</span>
-                                                                    <span className="text-[11px] font-medium opacity-60 mt-0.5">{bid.bidClseTm?.replace(/(\d{2})(\d{2})/, '$1:$2')}</span>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
-                                    <div className="flex-1 flex flex-col items-center justify-center p-20 text-center opacity-30">
-                                        <Icon name="search" size={64} className="mb-4 text-slate-300" />
-                                        <p className="font-bold text-slate-500 text-lg">데이터가 없습니다</p>
-                                        <p className="text-sm mt-2 text-slate-400">조건을 변경하거나 잠시 후 다시 조회를 시도해 주세요.</p>
-                                    </div>
-                                )}
-                            </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center p-20 text-center opacity-30">
+                                    <Icon name="search" size={64} className="mb-4 text-slate-300" />
+                                    <p className="font-bold text-slate-500">조회된 공고가 없습니다</p>
+                                </div>
+                            )}
                         </div>
                     </div>
-                );
-            } catch (renderError) {
-                console.error('Render Error:', renderError);
-                return (
-                    <div className="p-10 text-center text-rose-500">
-                        렌더링 중 치명적인 오류가 발생했습니다. 브라우저 콘솔을 확인해 주세요.
-                    </div>
-                );
-            }
+                </div>
+            );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
