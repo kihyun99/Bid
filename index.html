@@ -244,14 +244,7 @@
                 }
             };
 
-            const stats = useMemo(() => {
-                const safeList = Array.isArray(bidList) ? bidList : [];
-                return [
-                    { title: '전체 공고', value: safeList.length, icon: 'file-text', color: 'bg-sky-500', textColor: 'text-sky-600' },
-                    { title: '긴급 공고', value: safeList.filter(b => b?.bidNtceNm?.includes('긴급')).length, icon: 'alert-circle', color: 'bg-amber-500', textColor: 'text-amber-600' },
-                    { title: '오늘 마감', value: safeList.filter(b => b?.bidClseDate === new Date().toISOString().split('T')[0].replace(/-/g, '')).length, icon: 'clock', color: 'bg-rose-500', textColor: 'text-rose-600' },
-                ];
-            }, [bidList]);
+
 
             return (
                 <div className="min-h-screen relative p-4 md:p-8">
@@ -264,7 +257,7 @@
                                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">나라장터 실시간 대시보드</h1>
                                 <p className="text-slate-500 mt-1 font-medium flex items-center gap-2">
                                     PPS Real-time Bid Monitor
-                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.8</span>
+                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.9</span>
                                 </p>
                             </div>
 
@@ -301,9 +294,7 @@
                             </div>
                         </header>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            {stats.map((stat, i) => <StatCard key={i} {...stat} />)}
-                        </div>
+
 
                         <div className="glass-panel rounded-3xl overflow-hidden flex flex-col min-h-[500px] border-white/60 shadow-xl shadow-slate-200/50">
                             <div className="p-6 border-b border-slate-100 bg-white/50 flex items-center justify-between">
@@ -341,7 +332,7 @@
                                                     <th className="px-6 py-4 font-bold text-[11px]">정보</th>
                                                     <th className="px-6 py-4 font-bold text-[11px] w-1/2">입찰공고명</th>
                                                     <th className="px-6 py-4 font-bold text-[11px]">기관</th>
-                                                    <th className="px-6 py-4 font-bold text-[11px] text-right">마감</th>
+                                                    <th className="px-6 py-4 font-bold text-[11px] text-right">공고일자</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 bg-white">
@@ -368,8 +359,8 @@
                                                         </td>
                                                         <td className="px-6 py-5 text-right whitespace-nowrap">
                                                             <div className="flex flex-col text-slate-600">
-                                                                <span className="font-bold text-xs">{bid.bidClseDate?.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</span>
-                                                                <span className="text-[10px] opacity-60">{bid.bidClseTm?.replace(/(\d{2})(\d{2})/, '$1:$2')}</span>
+                                                                <span className="font-bold text-xs">{bid.bidNtceDt?.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3')}</span>
+                                                                <span className="text-[10px] opacity-60 font-medium">{bid.bidNtceDt?.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/, '$4:$5')}</span>
                                                             </div>
                                                         </td>
                                                     </tr>
