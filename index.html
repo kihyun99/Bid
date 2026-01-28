@@ -145,7 +145,7 @@
         );
 
         function App() {
-            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '692e2494ef42277ea5df6f9fb0eccabca3061d0fc6f417ca51b8ff166c14cc0e');
+            const [apiKey, setApiKey] = useState(localStorage.getItem('pps_api_key') || '');
             const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
             const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
             const [bidList, setBidList] = useState([]);
@@ -153,17 +153,21 @@
             const [error, setError] = useState(null);
 
             useEffect(() => {
-                localStorage.setItem('pps_api_key', apiKey);
+                if (apiKey) {
+                    localStorage.setItem('pps_api_key', apiKey);
+                }
             }, [apiKey]);
 
             const fetchBids = async () => {
                 if (!apiKey) {
-                    setError('API 인증키가 필요합니다. 상단 설정에서 입력해주세요.');
+                    setError('상단 설정에서 API 인증키(서비스키)를 입력해주세요.');
                     return;
                 }
 
                 setLoading(true);
                 setError(null);
+
+
 
                 try {
                     const bgnDt = startDate.replace(/-/g, '') + '0000';
