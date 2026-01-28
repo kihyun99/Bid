@@ -222,19 +222,17 @@
                         let items = data?.body?.items || [];
                         if (items && !Array.isArray(items)) items = [items];
 
-                        // 1. '용역' 필터 적용
-                        let resultItems = items.filter(item => item.bsnsDivNm === '용역');
-
-                        // 2. 키워드가 있을 경우 공고명 필터링
+                        // 키워드가 있을 경우 공고명 필터링
+                        let resultItems = items;
                         if (keyword.trim()) {
-                            resultItems = resultItems.filter(item =>
+                            resultItems = items.filter(item =>
                                 item.bidNtceNm && item.bidNtceNm.includes(keyword.trim())
                             );
                         }
 
                         setBidList(resultItems);
                         if (resultItems.length === 0) {
-                            setError('해당 조건에 일치하는 "용역" 공고가 없습니다.');
+                            setError('해당 조건에 일치하는 공고가 없습니다.');
                         } else {
                             setStatus('');
                         }
@@ -266,7 +264,7 @@
                                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">나라장터 실시간 대시보드</h1>
                                 <p className="text-slate-500 mt-1 font-medium flex items-center gap-2">
                                     PPS Real-time Bid Monitor
-                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.7</span>
+                                    <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-bold">STABLE 1.8</span>
                                 </p>
                             </div>
 
